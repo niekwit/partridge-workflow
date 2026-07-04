@@ -1,8 +1,35 @@
-sample_sheet: ".test/config/samples.tsv"
+genome: mm39
+ensembl_genome_build: 115
 
-get_genome:
-  ncbi_ftp: https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/146/045/GCF_000146045.2_R64/GCF_000146045.2_R64_genomic.fna.gz
+trim_galore_args: "--illumina -q 20"
 
-simulate_reads:
-  read_length: 100
-  read_number: 10000
+bwa_mem2_args: "-c 1000000 -L 100"
+
+ngs_tracker:
+  enabled: false # set to false to skip registration
+
+  # Connection
+  base_url: "http://127.0.0.1:5000/api" # change host/port if needed
+
+  # Run identity  (find project_id on the project detail page)
+  project_id: 3
+  #run_id: 1 # optional, if not provided a new run will be created
+  workflow_name: "partridge"
+  workflow_tag: "v0.1.0"
+  workflow_system: "snakemake" # snakemake | nextflow | cwl | other
+  description: "Test"
+  tags:
+    - Test
+
+  # Files to attach — paths relative to the working directory or absolute
+  # type: config | sample_info | qc | results | mapping_rates | other
+  files:
+    - path: "config/config.yaml"
+      type: config
+      description: "Workflow config"
+    - path: "results/qc/multiqc.html"
+      type: qc
+      description: "MultiQC report"
+    - path: "results/qc/alignment-rates.csv"
+      type: mapping_rates
+      description: "Mapping rates"
