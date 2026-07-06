@@ -1,3 +1,4 @@
 [submodule "workflow/scripts/PARTRIDGE"]
 	path = workflow/scripts/PARTRIDGE
 	url = https://github.com/niekwit/PARTRIDGE.git
+	branch = main
