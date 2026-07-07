@@ -5,6 +5,9 @@ trim_galore_args: "--illumina -q 20"
 
 bwa_mem2_args: "-c 1000000 -L 100"
 
+hmmer2_args:
+  chunk_size: 100
+
 ngs_tracker:
   enabled: false # set to false to skip registration
 

@@ -1,7 +1,5 @@
-# Main entrypoint of the workflow.
-# Please follow the best practices:
-# https://snakemake.readthedocs.io/en/stable/snakefiles/best_practices.html,
-# in particular regarding the standardized folder structure mentioned there.
+# Workflow based on PARTRIDGE
+# https://github.com/jeremydeuel/PARTRIDGE
 
 
 # load configuration
@@ -12,21 +10,45 @@ configfile: "config/config.yaml"
 # load rules
 # -----------------------------------------------------
 include: "rules/common.smk"
+
+genome_resources = GenomeResources(config["genome"], config["ensembl_genome_build"])
+GENOME = genome_resources.genome
+SAMPLES = samples()
+
 include: "rules/process_reads.smk"
+include: "rules/partridge.smk"
 
-
-# optional messages, log and error handling
-# -----------------------------------------------------
-onstart:
-    print("\n--- Analysis started ---\n")
+# Save snakemake terminal output to log file
+time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+snake_log = f"logs/snakemake/{time}_snakemake.log"
+os.makedirs("logs/snakemake", exist_ok=True)
 
 
 onsuccess:
-    print("\n--- Workflow finished! ---\n")
+    shell("cp -v {log} {snake_log}")
+    logger.info("Analysis finished successfully!")
+
+    try:
+        from ngs_tracker import register_run
+
+        register_run(config)
+    except ImportError:
+        pass
+    except Exception as exc:
+        logger.warning(f"NGS Tracker registration skipped: {exc}")
 
 
 onerror:
-    print("\n--- An error occurred! ---\n")
+    shell("cp -v {log} {snake_log}")
+    logger.info(f"Analysis failed...\nCheck {snake_log} for details")
+    try:
+        from ngs_tracker import register_run
+
+        register_run(config, status="failed", log_file=log)
+    except ImportError:
+        pass
+    except Exception as exc:
+        logger.warning(f"NGS Tracker registration skipped: {exc}")
 
 
 # target rules
@@ -34,4 +56,8 @@ onerror:
 rule all:
     default_target: True
     input:
-        "results/multiqc/multiqc_report.html",
+        "results/qc/multiqc_report.html",
+        "results/insertions/somatic.pdf",
+        #"results/insertions/germline.pdf",
+        "results/insertions/aggregated_insertions_table.xlsx",
+        "results/insertions/manual_review_audit_table.xlsx",

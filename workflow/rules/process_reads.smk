@@ -1,91 +1,103 @@
-# ----------------------------------------------------- #
-# EXAMPLE WORKFLOW                                      #
-# ----------------------------------------------------- #
-
-
-# fetch genome sequence from NCBI
+# fetch genome sequence from Ensembl
 # -----------------------------------------------------
 rule get_genome:
     output:
-        fasta="results/get_genome/genome.fna",
+        fasta=genome_resources.fasta,
     log:
-        "results/get_genome/genome.log",
+        "logs/get_genome.log",
     conda:
         "../envs/get_genome.yaml"
     params:
-        ncbi_ftp=lookup(within=config, dpath="get_genome/ncbi_ftp"),
-    message:
-        """--- Downloading genome sequence."""
+        url=genome_resources.fasta_url,
     shell:
-        "wget -O results/get_genome/genome.fna.gz {params.ncbi_ftp} > {log} 2>&1 && "
-        "gunzip results/get_genome/genome.fna.gz >> {log} 2>&1"
+        "wget -O {output.fasta}.gz {params.url} > {log} 2>&1 && "
+        "gunzip {output.fasta}.gz >> {log} 2>&1"
 
 
-# validate genome sequence file
-# -----------------------------------------------------
-rule validate_genome:
+rule bwa_mem2_index:
     input:
-        fasta=rules.get_genome.output.fasta,
+        genome_resources.fasta,
     output:
-        fasta="results/validate_genome/genome.fna",
+        "resources/{genome}.0123",
+        "resources/{genome}.amb",
+        "resources/{genome}.ann",
+        "resources/{genome}.bwt.2bit.64",
+        "resources/{genome}.pac",
     log:
-        "results/validate_genome/genome.log",
-    conda:
-        "../envs/validate_genome.yaml"
-    message:
-        """--- Validating genome sequence file."""
-    script:
-        "../scripts/validate_fasta.py"
+        "logs/bwa-mem2_index/{genome}.log",
+    wrapper:
+        "v7.2.0/bio/bwa-mem2/index"
 
 
-# simulate read data using DWGSIM
-# -----------------------------------------------------
-rule simulate_reads:
+rule trim_galore_pe:
     input:
-        fasta=rules.validate_genome.output.fasta,
+        ["reads/{sample}_R1_001.fastq.gz", "reads/{sample}_R2_001.fastq.gz"],
     output:
-        multiext(
-            "results/simulate_reads/{sample}",
-            read1=".bwa.read1.fastq.gz",
-            read2=".bwa.read2.fastq.gz",
-        ),
+        fasta_fwd="results/trimmed/{sample}_R1.fastq.gz",
+        report_fwd="results/trimmed/reports/{sample}_R1_trimming_report.txt",
+        fasta_rev="results/trimmed/{sample}_R2.fastq.gz",
+        report_rev="results/trimmed/reports/{sample}_R2_trimming_report.txt",
     log:
-        "results/simulate_reads/{sample}.log",
-    conda:
-        "../envs/simulate_reads.yaml"
+        "logs/trim_galore/{sample}.log",
+    threads: 6
     params:
-        output_type=1,
-        output_prefix=lambda wildcards, output: output.read1.rsplit(".", 4)[0],
-        read_length=lookup(within=config, dpath="simulate_reads/read_length"),
-        read_number=lookup(within=config, dpath="simulate_reads/read_number"),
-    message:
-        """--- Simulating read data with DWGSIM."""
-    shell:
-        "dwgsim "
-        " -1 {params.read_length}"
-        " -2 {params.read_length}"
-        " -N {params.read_number}"
-        " -o {params.output_type}"
-        " {input.fasta}"
-        " {params.output_prefix}"
-        " > {log} 2>&1"
+        extra=config["trim_galore_args"],
+    wrapper:
+        "v5.8.3/bio/trim_galore/pe"
+
+
+rule bwa_mem2_mem:
+    input:
+        reads=[
+            "results/trimmed/{sample}_R1.fastq.gz",
+            "results/trimmed/{sample}_R2.fastq.gz",
+        ],
+        # Index needs to be a list of all index files created by bwa
+        idx=expand(
+            "resources/{genome}.fasta.{ext}",
+            genome=GENOME,
+            ext=["amb", "ann", "bwt.2bit.64", "pac", "0123"]
+        ),
+    output:
+        "results/mapped/{sample}.bam",
+    log:
+        "logs/bwa_mem2/{sample}.log",
+    threads: 12
+    params:
+        extra=r"-R '@RG\tID:{sample}\tSM:{sample}'",
+        sort="samtools",  # Can be 'none', 'samtools', or 'picard'.
+        sort_order="coordinate",  # Can be 'coordinate' (default) or 'queryname'.
+        sort_extra="",  # Extra args for samtools/picard sorts.
+    wrapper:
+        "v9.4.1/bio/bwa-mem2/mem"
+
+
+rule samtools_stats:
+    input:
+        bam="results/mapped/{sample}.bam",  #Optional input, specify target regions
+    output:
+        "results/qc/samtools_stats/{sample}.txt",
+    log:
+        "logs/samtools_stats/{sample}.log",
+    params:
+        extra="",  # Optional: extra arguments.
+    wrapper:
+        "v9.4.2/bio/samtools/stats"
 
 
 # make QC report
 # -----------------------------------------------------
 rule fastqc:
     input:
-        fastq="results/simulate_reads/{sample}.bwa.{read}.fastq.gz",
+        fastq="reads/{sample}_{read}_001.fastq.gz"
     output:
-        html="results/fastqc/{sample}.bwa.{read}_fastqc.html",
-        zip="results/fastqc/{sample}.bwa.{read}_fastqc.zip",
+        html="results/fastqc/{sample}_{read}_fastqc.html",
+        zip="results/fastqc/{sample}_{read}_fastqc.zip",
     log:
-        "results/fastqc/{sample}.bwa.{read}.log",
+        "results/fastqc/{sample}_{read}.log",
     threads: 1
     params:
         extra="--quiet",
-    message:
-        """--- Checking fastq files with FastQC."""
     wrapper:
         "v7.6.0/bio/fastqc"
 
@@ -95,18 +107,20 @@ rule fastqc:
 rule multiqc:
     input:
         expand(
-            "results/fastqc/{sample}.bwa.{read}_fastqc.{ext}",
-            sample=samples.index,
-            read=["read1", "read2"],
+            "results/fastqc/{sample}_{read}_fastqc.{ext}",
+            sample=SAMPLES,
+            read=["R1", "R2"],
             ext=["html", "zip"],
         ),
+        expand(
+            "results/qc/samtools_stats/{sample}.txt",
+            sample=SAMPLES,
+        ),
     output:
-        report="results/multiqc/multiqc_report.html",
+        report="results/qc/multiqc_report.html",
     log:
         "results/multiqc/multiqc.log",
     params:
         extra="--verbose --dirs",
-    message:
-        """--- Generating MultiQC report for seq data."""
     wrapper:
         "v8.1.1/bio/multiqc"
