@@ -1,6 +1,11 @@
 # Workflow based on PARTRIDGE
 # https://github.com/jeremydeuel/PARTRIDGE
 
+VERSION = "v0.1.0"
+
+
+containerized: f"docker://niekwit/partridge-workflow:{VERSION}"
+
 
 # load configuration
 # -----------------------------------------------------
@@ -11,12 +16,15 @@ configfile: "config/config.yaml"
 # -----------------------------------------------------
 include: "rules/common.smk"
 
+
 genome_resources = GenomeResources(config["genome"], config["ensembl_genome_build"])
 GENOME = genome_resources.genome
 SAMPLES = samples()
 
+
 include: "rules/process_reads.smk"
 include: "rules/partridge.smk"
+
 
 # Save snakemake terminal output to log file
 time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -27,7 +35,6 @@ os.makedirs("logs/snakemake", exist_ok=True)
 onsuccess:
     shell("cp -v {log} {snake_log}")
     logger.info("Analysis finished successfully!")
-
     try:
         from ngs_tracker import register_run
 
