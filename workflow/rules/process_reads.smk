@@ -23,6 +23,7 @@ rule bwa_mem2_index:
         "resources/{genome}.ann",
         "resources/{genome}.bwt.2bit.64",
         "resources/{genome}.pac",
+    threads: 12
     log:
         "logs/bwa-mem2_index/{genome}.log",
     wrapper:
