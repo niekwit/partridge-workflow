@@ -43,8 +43,10 @@ rule trim_galore_pe:
     threads: 6
     params:
         extra=config["trim_galore_args"],
+    conda:
+        "../envs/trim_galore.yml"
     wrapper:
-        "v5.8.3/bio/trim_galore/pe"
+        "v9.9.0/bio/trim_galore/pe"
 
 
 rule bwa_mem2_mem:
