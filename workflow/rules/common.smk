@@ -10,6 +10,18 @@ from scripts.resources import Resources as GenomeResources
 # validate(samples, schema="../schemas/samples.schema.yaml")
 # validate(config, schema="../schemas/config.schema.yaml")
 
+
+def samples():
+    df = pd.read_excel("config/metadata.xlsx")
+
+    return df["Expt.ID"].tolist()
+
+
+genome_resources = GenomeResources(config["genome"], config["ensembl_genome_build"])
+GENOME = genome_resources.genome
+SAMPLES = samples()
+
+
 indent = 21
 
 
@@ -33,11 +45,11 @@ for i in range(1, len(sys.argv)):
 border_length = 70
 logger.info("=" * border_length)
 logger.info("")
-logger.info("▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄")
-logger.info("██ ▄▄ █ ▄▄▀██ ▄▄▀█▄▄ ▄▄██ ▄▄▀█▄ ▄██ ▄▄▀██ ▄▄ ██ ▄▄▄█")
-logger.info("██ ▀▀ █ ▀▀ ██ ▀▀▄███ ████ ▀▀▄██ ███ ██ ██ █▀▀██ ▄▄▄█")
-logger.info("██ ████ ██ ██ ██ ███ ████ ██ █▀ ▀██ ▀▀ ██ ▀▀▄██ ▀▀▀█")
-logger.info("▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀")
+logger.info("▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄")
+logger.info("████████ ▄▄ █ ▄▄▀██ ▄▄▀█▄▄ ▄▄██ ▄▄▀█▄ ▄██ ▄▄▀██ ▄▄ ██ ▄▄▄███████")
+logger.info("████████ ▀▀ █ ▀▀ ██ ▀▀▄███ ████ ▀▀▄██ ███ ██ ██ █▀▀██ ▄▄▄███████")
+logger.info("████████ ████ ██ ██ ██ ███ ████ ██ █▀ ▀██ ▀▀ ██ ▀▀▄██ ▀▀▀███████")
+logger.info("▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀")
 logger.info("")
 logger.info(
     "  Date:                " + datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -45,7 +57,9 @@ logger.info(
 logger.info("  Python:              " + str(sys.version.split(" ")[0]))
 logger.info("  Conda:               " + conda_version())
 logger.info("  Snakemake:           " + snakemake.__version__)
-logger.info("  partridge-workflow:  " + VERSION)
+logger.info("  partridge-workflow:  " + VERSION.replace("v", ""))
+logger.info("  Genome:              " + config["genome"] + f" (Release {config['ensembl_genome_build']})")
+logger.info("  Samples:             " + str(len(SAMPLES)))
 logger.info("  Command:             " + cmdline)
 logger.info("")
 
@@ -69,11 +83,7 @@ logger.info("=" * border_length)
 logger.info("")
 
 
-def samples():
-    df = pd.read_excel("config/metadata.xlsx")
-
-    return df["mouse"].tolist()
-
-
 def multi_sample_run(SAMPLES):
     return len(SAMPLES) > 1
+
+
