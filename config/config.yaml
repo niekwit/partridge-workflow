@@ -8,6 +8,9 @@ bwa_mem2_args: "-c 1000000 -L 100"
 hmmer2_args:
   chunk_size: 100
 
+ervk_qc:
+  max_mismatches: 2 # maximum edit distance (NM tag) for a read to count as fully matching the reference
+
 ngs_tracker:
   enabled: false # set to false to skip registration
 
