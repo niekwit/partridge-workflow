@@ -1,5 +1,13 @@
 import os
 
+# genome: (Ensembl species, Ensembl assembly name, UCSC build)
+GENOMES = {
+    "hg19": ("homo_sapiens", "GRCh37", "hg19"),
+    "hg38": ("homo_sapiens", "GRCh38", "hg38"),
+    "mm38": ("mus_musculus", "GRCm38", "mm10"),
+    "mm39": ("mus_musculus", "GRCm39", "mm39"),
+}
+
 
 class Resources:
     """Gets URLs and file names of fasta and GTF files for a given genome and build"""
@@ -11,53 +19,27 @@ class Resources:
         self.genome = genome
         self.build = build
 
+        if genome not in GENOMES:
+            raise ValueError(
+                f"Genome {genome} not supported, choose from: {', '.join(GENOMES)}"
+            )
+        species, name, ucsc_build = GENOMES[genome]
+        prefix = species.capitalize()
+
         # base URLs
         base_url_ens = f"https://ftp.ensembl.org/pub/release-{build}/"
 
-        if "hg" in genome:
-            if genome == "hg19":
-                name = "GRCh37"
-            elif genome == "hg38":
-                name = "GRCh38"
+        # create URLs for genome files
+        self.fasta_url = f"{base_url_ens}fasta/{species}/dna/{prefix}.{name}.dna.primary_assembly.fa.gz"
+        self.gtf_url = f"{base_url_ens}gtf/{species}/{prefix}.{name}.{build}.gtf.gz"
 
-            # create URLs for genome files
-            self.fasta_url = f"{base_url_ens}fasta/homo_sapiens/dna/Homo_sapiens.{name}.dna.primary_assembly.fa.gz"
-            self.gtf_url = (
-                f"{base_url_ens}gtf/homo_sapiens/Homo_sapiens.{name}.{build}.gtf.gz"
-            )
-
-        elif "mm" in genome:
-            if genome == "mm38":
-                name = "GRCm38"
-            elif genome == "mm39":
-                name = "GRCm39"
-
-            # create URLs for genome files
-            self.fasta_url = f"{base_url_ens}fasta/mus_musculus/dna/Mus_musculus.{name}.dna.primary_assembly.fa.gz"
-            self.gtf_url = (
-                f"{base_url_ens}gtf/mus_musculus/Mus_musculus.{name}.{build}.gtf.gz"
-            )
-
-        elif "dm" in genome:
-            if genome == "dm6":
-                name = "BDGP6.46"
-
-            self.fasta_url = f"{base_url_ens}fasta/drosophila_melanogaster/dna/Drosophila_melanogaster.{name}.dna.toplevel.fa.gz"
-            self.gtf_url = f"{base_url_ens}gtf/drosophila_melanogaster/Drosophila_melanogaster.{name}.{build}.gtf.gz"
-
-        elif "test" in genome:
-            if genome == "dm6":
-                name = "BDGP6.46"
-
-            self.fasta_url = "https://github.com/niekwit/damid-seq/raw/main/.test_pe/Homo_sapiens.GRCh38.dna.primary_assembly_chr11.fa.gz"
-            self.gtf_url = "https://ftp.ensembl.org/pub/release-110/gtf/homo_sapiens/Homo_sapiens.GRCh38.110.gtf.gz"
-
-        else:
-            raise ValueError("Genome {genome} not supported")
+        # UCSC RepeatMasker table (rmsk), used to build the ERVK bed file
+        self.repeat_mask_url = f"https://hgdownload.soe.ucsc.edu/goldenPath/{ucsc_build}/database/rmsk.txt.gz"
 
         # downloaded unzipped file names
         self.fasta = self._file_from_url(self.fasta_url)
         self.gtf = self._file_from_url(self.gtf_url)
+        self.ervk_bed = "resources/ervk.bed"
 
     def _file_from_url(self, url):
         """Returns file path for unzipped downloaded file"""
