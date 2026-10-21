@@ -56,3 +56,26 @@ rule collect_insertions:
         "--output-xlsx {output.table} "
         "--audit-xlsx {output.audit} > {log} 2>&1 && "
         "[ -f {output.germline_pdf} ] || touch {output.germline_pdf}"
+
+
+# Gathers the clipped evidence sequences and paired mates for each candidate
+# insertion site of a sample, for manual verification. Only somatic sites are
+# included: the audit table's "mouse" column holds the Expt.ID of the sample a
+# site was found in, or "multi" for sites found in more than one sample.
+rule collect_evidence:
+    input:
+        audit="results/insertions/manual_review_audit_table.xlsx",
+        bam="results/mapped/{sample}.bam",
+        bai="results/mapped/{sample}.bam.bai",
+    output:
+        "results/evidence/{sample}.evidence.fa.gz",
+    log:
+        "logs/partridge/collect_evidence/{sample}.log",
+    conda:
+        "../envs/partridge.yaml"
+    shell:
+        "python workflow/scripts/PARTRIDGE/partridge/collect_evidence.py "
+        "--audit-xlsx {input.audit} "
+        "--bam {input.bam} "
+        "--sample {wildcards.sample} "
+        "--output {output} > {log} 2>&1"

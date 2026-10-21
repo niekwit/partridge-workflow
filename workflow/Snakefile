@@ -63,3 +63,4 @@ rule all:
         "results/insertions/aggregated_insertions_table.xlsx",
         "results/insertions/manual_review_audit_table.xlsx",
         "results/qc/ervk_enrichment_qc.csv",
+        expand("results/evidence/{sample}.evidence.fa.gz", sample=SAMPLES),
