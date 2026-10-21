@@ -75,6 +75,20 @@ rule bwa_mem2_mem:
         "v9.4.1/bio/bwa-mem2/mem"
 
 
+rule samtools_index:
+    input:
+        "results/mapped/{sample}.bam",
+    output:
+        "results/mapped/{sample}.bam.bai",
+    log:
+        "logs/samtools_index/{sample}.log",
+    threads: 4
+    params:
+        extra="",  # optional params string
+    wrapper:
+        "v9.4.2/bio/samtools/index"
+
+
 rule samtools_stats:
     input:
         bam="results/mapped/{sample}.bam",  #Optional input, specify target regions
