@@ -17,15 +17,15 @@ rule extract_insertions:
         hmm=expand("resources/iap.hmm.{ext}", ext=["h3f", "h3i", "h3m", "h3p"]),
     output:
         tsv="results/insertions/{sample}.isa.tsv",
-    params:
-        outdir= lambda wc, output: os.path.dirname(output["tsv"]),
-        hmm=lambda wc, input: os.path.splitext(input["hmm"][0])[0],
-        chunk_size=config["hmmer2_args"]["chunk_size"],
     log:
         "logs/partridge/extract_insertions/{sample}.log",
-    threads: 6
     conda:
         "../envs/partridge.yaml"
+    threads: 6
+    params:
+        outdir=lambda wc, output: os.path.dirname(output["tsv"]),
+        hmm=lambda wc, input: os.path.splitext(input["hmm"][0])[0],
+        chunk_size=config["hmmer2_args"]["chunk_size"],
     shell:
         "python workflow/scripts/PARTRIDGE/partridge/isa_hmmer2.py "
         "--threads {threads} "
@@ -43,8 +43,6 @@ rule collect_insertions:
         germline_pdf="results/insertions/germline.pdf",
         table="results/insertions/aggregated_insertions_table.xlsx",
         audit="results/insertions/manual_review_audit_table.xlsx",
-    params:
-        extra=""
     log:
         "logs/partridge/collect_insertions.log",
     conda:
