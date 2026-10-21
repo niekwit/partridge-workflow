@@ -15,15 +15,9 @@ configfile: "config/config.yaml"
 # load rules
 # -----------------------------------------------------
 include: "rules/common.smk"
-
-
-genome_resources = GenomeResources(config["genome"], config["ensembl_genome_build"])
-GENOME = genome_resources.genome
-SAMPLES = samples()
-
-
 include: "rules/process_reads.smk"
 include: "rules/partridge.smk"
+include: "rules/qc.smk"
 
 
 # Save snakemake terminal output to log file
@@ -68,3 +62,4 @@ rule all:
         #"results/insertions/germline.pdf",
         "results/insertions/aggregated_insertions_table.xlsx",
         "results/insertions/manual_review_audit_table.xlsx",
+        "results/qc/ervk_enrichment_qc.csv",
