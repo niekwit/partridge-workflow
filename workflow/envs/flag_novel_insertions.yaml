@@ -1,0 +1,11 @@
+name: flag_novel_insertions
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python
+  - pandas=2.2.3
+  - openpyxl=3.1.5
+  - bioconda::pysam
+  - bioconda::blat=36
