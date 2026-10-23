@@ -33,12 +33,14 @@ class Resources:
         self.fasta_url = f"{base_url_ens}fasta/{species}/dna/{prefix}.{name}.dna.primary_assembly.fa.gz"
         self.gtf_url = f"{base_url_ens}gtf/{species}/{prefix}.{name}.{build}.gtf.gz"
 
-        # UCSC RepeatMasker table (rmsk), used to build the ERVK bed file
+        # UCSC RepeatMasker table (rmsk), used to build the repeat and ERVK bed files
         self.repeat_mask_url = f"https://hgdownload.soe.ucsc.edu/goldenPath/{ucsc_build}/database/rmsk.txt.gz"
 
         # downloaded unzipped file names
         self.fasta = self._file_from_url(self.fasta_url)
         self.gtf = self._file_from_url(self.gtf_url)
+        self.twobit = os.path.splitext(self.fasta)[0] + ".2bit"
+        self.repeat_mask_bed = "resources/repeat_mask.bed"
         self.ervk_bed = "resources/ervk.bed"
 
     def _file_from_url(self, url):
